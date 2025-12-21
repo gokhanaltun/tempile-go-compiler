@@ -205,7 +205,7 @@ func parseTextNode(node tempilecore.Node) *codeChunk {
 	textNode := node.(*tempilecore.TextNode)
 	return &codeChunk{
 		Writable: true,
-		Data:     fmt.Sprintf("%s", textNode.Data),
+		Data:     fmt.Sprintf("%s", strings.TrimSpace(textNode.Data)),
 	}
 }
 
