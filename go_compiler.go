@@ -11,7 +11,6 @@ import (
 
 type CompileOptions struct {
 	PackageName  string
-	Imports      []string
 	TemplateName string
 	FileName     string
 	SrcPath      string
@@ -38,18 +37,6 @@ func Compile(src string, options *CompileOptions) (string, error) {
 		return "", errors.New("missing package name in compile options")
 	}
 
-	var imports string
-	if options.Imports == nil {
-		imports = ""
-	} else {
-
-		for _, imp := range options.Imports {
-			if imp != "" {
-				imports = imports + "\"" + imp + "\"" + "\n"
-			}
-		}
-	}
-
 	if options.TemplateName == "" {
 		return "", errors.New("missing template name in compile options")
 	}
@@ -68,7 +55,6 @@ func Compile(src string, options *CompileOptions) (string, error) {
 		"html"
 		"fmt"
 		"io"
-		%s
 	)
 
 	func %s(w io.Writer, data map[string]any) error {
@@ -113,7 +99,7 @@ func Compile(src string, options *CompileOptions) (string, error) {
 		}
 	}
 
-	compiledCode := fmt.Sprintf(layout, options.PackageName, imports, options.TemplateName, code.String())
+	compiledCode := fmt.Sprintf(layout, options.PackageName, options.TemplateName, code.String())
 
 	formattedCode, err := format.Source([]byte(compiledCode))
 	if err != nil {

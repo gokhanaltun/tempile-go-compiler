@@ -12,7 +12,6 @@ func TestCompileSimpleElement(t *testing.T) {
 
 	options := &CompileOptions{
 		PackageName:  "main",
-		Imports:      nil,
 		TemplateName: "Render",
 		FileName:     "simple.html",
 		SrcPath:      "./",
