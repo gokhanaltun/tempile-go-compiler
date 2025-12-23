@@ -37,7 +37,7 @@ func TestParseTextNode(t *testing.T) {
 
 func TestParseExprNode(t *testing.T) {
 	node := &tempilecore.ExprNode{Expr: "data.Name"}
-	chunk := parseExprNode(node)
+	chunk := parseExprNode(node, &compileContext{})
 	expected := "html.EscapeString(fmt.Sprint(data.Name))"
 	if chunk.Data != expected {
 		t.Fatalf("expected %q, got %q", expected, chunk.Data)
@@ -100,7 +100,7 @@ func TestParseIfNode(t *testing.T) {
 		Pos: tempilecore.Pos{FileName: "test.html", Line: 1},
 	}
 
-	chunks, err := parseIfNode(ifNode)
+	chunks, err := parseIfNode(ifNode, &compileContext{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +132,7 @@ func TestParseForNode(t *testing.T) {
 		Pos: tempilecore.Pos{FileName: "test.html", Line: 1},
 	}
 
-	chunks, err := parseForNode(forNode)
+	chunks, err := parseForNode(forNode, &compileContext{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestParseChildNodes(t *testing.T) {
 		&tempilecore.ExprNode{Expr: "data.Name"},
 	}
 
-	chunks, err := parseChildNodes(nodes)
+	chunks, err := parseChildNodes(nodes, &compileContext{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +197,7 @@ func TestParseElementNodeWithAttrAndExpr(t *testing.T) {
 		},
 	}
 
-	chunks, err := parseElementNode(node)
+	chunks, err := parseElementNode(node, &compileContext{})
 	if err != nil {
 		t.Fatal(err)
 	}
