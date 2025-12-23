@@ -75,7 +75,7 @@ func Compile(src string, options *CompileOptions) (string, error) {
 		return "", err
 	}
 
-	ast.ResolveImports(options.SrcPath)
+	ast.ResolveIncludes(options.SrcPath)
 	ast.MatchSlotsAndContents()
 
 	ctx := &compileContext{}

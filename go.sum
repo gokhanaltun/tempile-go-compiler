@@ -1,4 +1,4 @@
-github.com/gokhanaltun/tempile-core v0.0.0-20251219133920-33010ac29d1b h1:9HW9bpfREv0PVj/JOO78Z3cpAnbhrPjOgligC7+j+Xk=
-github.com/gokhanaltun/tempile-core v0.0.0-20251219133920-33010ac29d1b/go.mod h1:A70KTheU55a66V11ojVRR7m1HCFjzjjVKzGkOXqS6NY=
+github.com/gokhanaltun/tempile-core v0.0.0-20251223143939-9bd848bc64d9 h1:VPdOKbdjBaCNk0bMwRZ9EvJLqMkLFi2snjDU9kH4T5k=
+github.com/gokhanaltun/tempile-core v0.0.0-20251223143939-9bd848bc64d9/go.mod h1:A70KTheU55a66V11ojVRR7m1HCFjzjjVKzGkOXqS6NY=
 golang.org/x/net v0.48.0 h1:zyQRTTrjc33Lhh0fBgT/H3oZq9WuvRR5gPC70xpDiQU=
 golang.org/x/net v0.48.0/go.mod h1:+ndRgGjkh8FGtu1w1FGbEC31if4VrNVMuKTgcAAnQRY=
