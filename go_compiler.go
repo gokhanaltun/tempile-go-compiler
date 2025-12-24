@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"go/format"
+	"slices"
 	"strings"
 
 	tempilecore "github.com/gokhanaltun/tempile-core"
@@ -25,6 +26,18 @@ type codeChunk struct {
 type compileContext struct {
 	usedHTML bool
 	usedFMT  bool
+}
+
+type importCtx struct {
+	imports []string
+}
+
+func (i *importCtx) add(imports []string) {
+	for _, imp := range imports {
+		if !slices.Contains(i.imports, imp) {
+			i.imports = append(i.imports, imp)
+		}
+	}
 }
 
 var voidElements = map[string]bool{
@@ -79,10 +92,11 @@ func Compile(src string, options *CompileOptions) (string, error) {
 	ast.MatchSlotsAndContents()
 
 	ctx := &compileContext{}
+	impCtx := &importCtx{}
 
 	var codeChunks []*codeChunk
 	for _, node := range ast.Childs {
-		chunks, err := parseNode(node, ctx)
+		chunks, err := parseNode(node, ctx, impCtx)
 		if err != nil {
 			return "", err
 		}
@@ -174,8 +188,10 @@ func writeStringLiteral(w *strings.Builder, s string) {
 	}
 }
 
-func parseNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, error) {
+func parseNode(node tempilecore.Node, ctx *compileContext, impCtx *importCtx) ([]*codeChunk, error) {
 	switch node.Type() {
+	case tempilecore.NodeImport:
+		return []*codeChunk{parseImportNode(node, impCtx)}, nil
 	case tempilecore.NodeDocumentType:
 		return []*codeChunk{parseDocumentTypeNode(node)}, nil
 	case tempilecore.NodeComment:
@@ -183,11 +199,11 @@ func parseNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, error)
 	case tempilecore.NodeText:
 		return []*codeChunk{parseTextNode(node)}, nil
 	case tempilecore.NodeElement:
-		return parseElementNode(node, ctx)
+		return parseElementNode(node, ctx, impCtx)
 	case tempilecore.NodeIf:
-		return parseIfNode(node, ctx)
+		return parseIfNode(node, ctx, impCtx)
 	case tempilecore.NodeFor:
-		return parseForNode(node, ctx)
+		return parseForNode(node, ctx, impCtx)
 	case tempilecore.NodeRawCode:
 		return []*codeChunk{parseRawCodeNode(node)}, nil
 	case tempilecore.NodeRawExpr:
@@ -197,6 +213,17 @@ func parseNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, error)
 	default:
 		return nil, nil
 	}
+}
+
+func parseImportNode(node tempilecore.Node, impCtx *importCtx) *codeChunk {
+	importNode := node.(*tempilecore.ImportNode)
+
+	for _, a := range importNode.Attrs {
+		if a.Name == "go" {
+			impCtx.add([]string{a.Value})
+		}
+	}
+	return nil
 }
 
 func parseDocumentTypeNode(node tempilecore.Node) *codeChunk {
@@ -223,7 +250,7 @@ func parseTextNode(node tempilecore.Node) *codeChunk {
 	}
 }
 
-func parseElementNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, error) {
+func parseElementNode(node tempilecore.Node, ctx *compileContext, impCtx *importCtx) ([]*codeChunk, error) {
 	elementNode := node.(*tempilecore.ElementNode)
 	var chunks []*codeChunk
 
@@ -263,7 +290,7 @@ func parseElementNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk,
 		})
 	}
 
-	childChunks, err := parseChildNodes(elementNode.Childs, ctx)
+	childChunks, err := parseChildNodes(elementNode.Childs, ctx, impCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +306,7 @@ func parseElementNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk,
 	return chunks, nil
 }
 
-func parseIfNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, error) {
+func parseIfNode(node tempilecore.Node, ctx *compileContext, impCtx *importCtx) ([]*codeChunk, error) {
 	ifNode := node.(*tempilecore.IfNode)
 	var chunks []*codeChunk
 
@@ -301,7 +328,7 @@ func parseIfNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, erro
 		Data:     fmt.Sprintf("if %s {\n", cond),
 	})
 
-	childChunks, err := parseChildNodes(ifNode.Then, ctx)
+	childChunks, err := parseChildNodes(ifNode.Then, ctx, impCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +340,7 @@ func parseIfNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, erro
 
 	if len(ifNode.ElseIfNodes) > 0 {
 		for _, elseif := range ifNode.ElseIfNodes {
-			elseifNode, err := parseElseIfNode(elseif, ctx)
+			elseifNode, err := parseElseIfNode(elseif, ctx, impCtx)
 			if err != nil {
 				return nil, err
 			}
@@ -322,7 +349,7 @@ func parseIfNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, erro
 	}
 
 	if ifNode.Else != nil {
-		elseNodeChunks, err := parseElseNode(ifNode.Else, ctx)
+		elseNodeChunks, err := parseElseNode(ifNode.Else, ctx, impCtx)
 		if err != nil {
 			return nil, err
 		}
@@ -336,7 +363,7 @@ func parseIfNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, erro
 	return chunks, nil
 }
 
-func parseElseIfNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, error) {
+func parseElseIfNode(node tempilecore.Node, ctx *compileContext, impCtx *importCtx) ([]*codeChunk, error) {
 	elseIfNode := node.(*tempilecore.ElseIfNode)
 
 	var chunks []*codeChunk
@@ -359,7 +386,7 @@ func parseElseIfNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, 
 		Data:     fmt.Sprintf("else if %s {\n", cond),
 	})
 
-	childChunks, err := parseChildNodes(elseIfNode.Childs, ctx)
+	childChunks, err := parseChildNodes(elseIfNode.Childs, ctx, impCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -372,7 +399,7 @@ func parseElseIfNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, 
 	return chunks, nil
 }
 
-func parseElseNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, error) {
+func parseElseNode(node tempilecore.Node, ctx *compileContext, impCtx *importCtx) ([]*codeChunk, error) {
 	elseNode := node.(*tempilecore.ElseNode)
 
 	var chunks []*codeChunk
@@ -382,7 +409,7 @@ func parseElseNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, er
 		Data:     "else {\n",
 	})
 
-	childChunks, err := parseChildNodes(elseNode.Childs, ctx)
+	childChunks, err := parseChildNodes(elseNode.Childs, ctx, impCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +422,7 @@ func parseElseNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, er
 	return chunks, nil
 }
 
-func parseForNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, error) {
+func parseForNode(node tempilecore.Node, ctx *compileContext, impCtx *importCtx) ([]*codeChunk, error) {
 	forNode := node.(*tempilecore.ForNode)
 	var chunks []*codeChunk
 
@@ -417,7 +444,7 @@ func parseForNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, err
 		Data:     fmt.Sprintf("for %s {\n", loop),
 	})
 
-	childChunks, err := parseChildNodes(forNode.Childs, ctx)
+	childChunks, err := parseChildNodes(forNode.Childs, ctx, impCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -431,10 +458,10 @@ func parseForNode(node tempilecore.Node, ctx *compileContext) ([]*codeChunk, err
 	return chunks, nil
 }
 
-func parseChildNodes(childs []tempilecore.Node, ctx *compileContext) ([]*codeChunk, error) {
+func parseChildNodes(childs []tempilecore.Node, ctx *compileContext, impCtx *importCtx) ([]*codeChunk, error) {
 	var chunks []*codeChunk
 	for _, c := range childs {
-		childChunks, err := parseNode(c, ctx)
+		childChunks, err := parseNode(c, ctx, impCtx)
 		if err != nil {
 			return nil, err
 		}

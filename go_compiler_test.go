@@ -100,7 +100,7 @@ func TestParseIfNode(t *testing.T) {
 		Pos: tempilecore.Pos{FileName: "test.html", Line: 1},
 	}
 
-	chunks, err := parseIfNode(ifNode, &compileContext{})
+	chunks, err := parseIfNode(ifNode, &compileContext{}, &importCtx{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +132,7 @@ func TestParseForNode(t *testing.T) {
 		Pos: tempilecore.Pos{FileName: "test.html", Line: 1},
 	}
 
-	chunks, err := parseForNode(forNode, &compileContext{})
+	chunks, err := parseForNode(forNode, &compileContext{}, &importCtx{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestParseChildNodes(t *testing.T) {
 		&tempilecore.ExprNode{Expr: "data.Name"},
 	}
 
-	chunks, err := parseChildNodes(nodes, &compileContext{})
+	chunks, err := parseChildNodes(nodes, &compileContext{}, &importCtx{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,18 +197,16 @@ func TestParseElementNodeWithAttrAndExpr(t *testing.T) {
 		},
 	}
 
-	chunks, err := parseElementNode(node, &compileContext{})
+	chunks, err := parseElementNode(node, &compileContext{}, &importCtx{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// compiler çıktısını tek stringde topluyoruz
 	code := ""
 	for _, c := range chunks {
 		code += c.Data
 	}
 
-	// Her parçayı ayrı ayrı kontrol ediyoruz
 	expectedParts := []string{
 		`<div class="`,
 		`container`,
