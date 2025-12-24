@@ -127,6 +127,10 @@ func Compile(src string, options *CompileOptions) (string, error) {
 		imports += "\t\"fmt\"\n"
 	}
 
+	for _, imp := range impCtx.imports {
+		imports += fmt.Sprintf("\t\"%s\"\n", imp)
+	}
+
 	compiledCode := fmt.Sprintf(layout, options.PackageName, imports, options.TemplateName, code.String())
 
 	formattedCode, err := format.Source([]byte(compiledCode))
